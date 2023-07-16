@@ -297,17 +297,16 @@ app.delete('/api/books/:id', async (req, res) => {
   try {
     const bookId = req.params.id;
 
-    // Find the book that is going to be deleted
     const bookToDelete = await Book.findById(bookId);
 
     if (!bookToDelete) {
       return res.status(404).json({ message: 'Book not found' });
     }
 
-    // Delete the book from the wishlist
     await Wishlist.deleteMany({ book: bookToDelete._id });
+    await ReadingList.deleteMany({ book: bookToDelete._id });
 
-    // Delete the book from the book collection
+   
     await Book.findByIdAndDelete(bookId);
 
     res.json({ message: 'Book deleted successfully' });
@@ -347,6 +346,16 @@ app.get('/api/wishlist', verifyJWT, async (req, res) => {
     const user = req.decoded.id;
     const wishlist = await Wishlist.find({ user }).populate('book');
     res.json(wishlist);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+app.get('/api/readinglist', verifyJWT, async (req, res) => {
+  try {
+    const user = req.decoded.id;
+    const readingList = await ReadingList.find({ user }).populate('book');
+    res.json(readingList);
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }
