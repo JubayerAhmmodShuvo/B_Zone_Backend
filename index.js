@@ -51,20 +51,20 @@ const bookSchema = new mongoose.Schema({
 
 const Book = mongoose.model('Book', bookSchema);
 
-const wishlistSchema = new mongoose.Schema({
-  book: { type: mongoose.Schema.Types.ObjectId, ref: 'Book' },
-  user: { type: String }, 
-});
+  const wishlistSchema = new mongoose.Schema({
+    book: { type: mongoose.Schema.Types.ObjectId, ref: 'Book' },
+    user: { type: String }, 
+  });
 
 
-const readingListSchema = new mongoose.Schema({
-  book: { type: mongoose.Schema.Types.ObjectId, ref: 'Book' },
-  user: { type: String }, 
-});
+  const readingListSchema = new mongoose.Schema({
+    book: { type: mongoose.Schema.Types.ObjectId, ref: 'Book' },
+    user: { type: String }, 
+  });
 
 
 
-const Wishlist = mongoose.model('Wishlist', wishlistSchema);
+  const Wishlist = mongoose.model('Wishlist', wishlistSchema);
 const ReadingList = mongoose.model('ReadingList', readingListSchema);
 
 
@@ -295,16 +295,27 @@ app.post('/api/readinglist/:bookId',verifyJWT, async (req, res) => {
 
 app.delete('/api/books/:id', async (req, res) => {
   try {
-    const book = await Book.findByIdAndDelete(req.params.id);
-    if (!book) {
+    const bookId = req.params.id;
+
+    // Find the book that is going to be deleted
+    const bookToDelete = await Book.findById(bookId);
+
+    if (!bookToDelete) {
       return res.status(404).json({ message: 'Book not found' });
     }
+
+    // Delete the book from the wishlist
+    await Wishlist.deleteMany({ book: bookToDelete._id });
+
+    // Delete the book from the book collection
+    await Book.findByIdAndDelete(bookId);
 
     res.json({ message: 'Book deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }
 });
+
 
 
 app.put('/api/books/:id', async (req, res) => {
@@ -330,6 +341,17 @@ app.put('/api/books/:id', async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 });
+
+app.get('/api/wishlist', verifyJWT, async (req, res) => {
+  try {
+    const user = req.decoded.id;
+    const wishlist = await Wishlist.find({ user }).populate('book');
+    res.json(wishlist);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 
 
 
