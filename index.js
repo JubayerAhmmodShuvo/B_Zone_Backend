@@ -219,6 +219,56 @@ app.get('/api/books/:id', async (req, res) => {
   }
 });
 
+app.delete('/api/books/:id',verifyJWT, async (req, res) => {
+  try {
+    const bookId = req.params.id;
+
+    const bookToDelete = await Book.findById(bookId);
+
+    if (!bookToDelete) {
+      return res.status(404).json({ message: 'Book not found' });
+    }
+
+    await Wishlist.deleteMany({ book: bookToDelete._id });
+    await ReadingList.deleteMany({ book: bookToDelete._id });
+
+   
+    await Book.findByIdAndDelete(bookId);
+
+    res.json({ message: 'Book deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+
+
+app.put('/api/books/:id',verifyJWT, async (req, res) => {
+  try {
+    const { title, author, genre, publicationDate } = req.body;
+    const updatedBook = await Book.findByIdAndUpdate(
+      req.params.id,
+      {
+        title,
+        author,
+        genre,
+        publicationDate,
+      },
+      { new: true }
+    );
+
+    if (!updatedBook) {
+      return res.status(404).json({ message: 'Book not found' });
+    }
+
+    res.json(updatedBook);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+
+
 
 app.post('/api/books/:id/reviews', verifyJWT, async (req, res) => {
  
@@ -241,11 +291,24 @@ app.post('/api/books/:id/reviews', verifyJWT, async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 });
+app.get('/api/books/:id/reviews', async (req, res) => {
+  try {
+    const book = await Book.findById(req.params.id);
+    if (!book) {
+      return res.status(404).json({ message: 'Book not found' });
+    }
 
-app.post('/api/wishlist/:bookId',verifyJWT, async (req, res) => {
+    res.json(book.reviews);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+
+app.post('/api/wishlist/:bookId', verifyJWT, async (req, res) => {
   try {
     const user = req.decoded.id;
-    const { bookId } = req.body;
+    const { bookId } = req.params;
     
     const book = await Book.findById(bookId);
 
@@ -253,8 +316,7 @@ app.post('/api/wishlist/:bookId',verifyJWT, async (req, res) => {
       return res.status(404).json({ message: 'Book not found' });
     }
 
-
-    const existingWishlistBook = await Wishlist.findOne({ book: book._id });
+    const existingWishlistBook = await Wishlist.findOne({ book: book._id, user });
     if (existingWishlistBook) {
       return res.json({ message: 'Book already exists in the wishlist' });
     }
@@ -267,6 +329,7 @@ app.post('/api/wishlist/:bookId',verifyJWT, async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 });
+
 
 
 app.post('/api/readinglist/:bookId',verifyJWT, async (req, res) => {
@@ -293,54 +356,6 @@ app.post('/api/readinglist/:bookId',verifyJWT, async (req, res) => {
   }
 });
 
-app.delete('/api/books/:id', async (req, res) => {
-  try {
-    const bookId = req.params.id;
-
-    const bookToDelete = await Book.findById(bookId);
-
-    if (!bookToDelete) {
-      return res.status(404).json({ message: 'Book not found' });
-    }
-
-    await Wishlist.deleteMany({ book: bookToDelete._id });
-    await ReadingList.deleteMany({ book: bookToDelete._id });
-
-   
-    await Book.findByIdAndDelete(bookId);
-
-    res.json({ message: 'Book deleted successfully' });
-  } catch (error) {
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-
-
-app.put('/api/books/:id', async (req, res) => {
-  try {
-    const { title, author, genre, publicationDate } = req.body;
-    const updatedBook = await Book.findByIdAndUpdate(
-      req.params.id,
-      {
-        title,
-        author,
-        genre,
-        publicationDate,
-      },
-      { new: true }
-    );
-
-    if (!updatedBook) {
-      return res.status(404).json({ message: 'Book not found' });
-    }
-
-    res.json(updatedBook);
-  } catch (error) {
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
 app.get('/api/wishlist', verifyJWT, async (req, res) => {
   try {
     const user = req.decoded.id;
@@ -360,6 +375,8 @@ app.get('/api/readinglist', verifyJWT, async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 });
+
+
 
 
 
