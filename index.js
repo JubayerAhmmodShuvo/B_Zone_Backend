@@ -356,6 +356,10 @@ app.get("/api/readinglist", verifyJWT, async (req, res) => {
   }
 });
 
+app.get("/", (req, res) => {
+  res.send("Hello, this is the root URL!");
+});
+
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
