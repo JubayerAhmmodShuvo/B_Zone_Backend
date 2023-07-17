@@ -219,7 +219,7 @@ app.get('/api/books/:id', async (req, res) => {
   }
 });
 
-app.delete('/api/books/:id',verifyJWT, async (req, res) => {
+app.delete('/api/books/:id', verifyJWT, async (req, res) => {
   try {
     const bookId = req.params.id;
 
@@ -229,10 +229,13 @@ app.delete('/api/books/:id',verifyJWT, async (req, res) => {
       return res.status(404).json({ message: 'Book not found' });
     }
 
+    if (bookToDelete.user.toString() !== req.decoded.id) {
+      return res.status(403).json({ message: 'Unauthorized - You cannot delete this book' });
+    }
+
     await Wishlist.deleteMany({ book: bookToDelete._id });
     await ReadingList.deleteMany({ book: bookToDelete._id });
 
-   
     await Book.findByIdAndDelete(bookId);
 
     res.json({ message: 'Book deleted successfully' });
@@ -243,29 +246,32 @@ app.delete('/api/books/:id',verifyJWT, async (req, res) => {
 
 
 
-app.put('/api/books/:id',verifyJWT, async (req, res) => {
+app.put('/api/books/:id', verifyJWT, async (req, res) => {
   try {
     const { title, author, genre, publicationDate } = req.body;
-    const updatedBook = await Book.findByIdAndUpdate(
-      req.params.id,
-      {
-        title,
-        author,
-        genre,
-        publicationDate,
-      },
-      { new: true }
-    );
+    const updatedBook = await Book.findById(req.params.id);
 
     if (!updatedBook) {
       return res.status(404).json({ message: 'Book not found' });
     }
 
-    res.json(updatedBook);
+    if (updatedBook.user.toString() !== req.decoded.id) {
+      return res.status(403).json({ message: 'Unauthorized - You cannot edit this book' });
+    }
+
+    updatedBook.title = title;
+    updatedBook.author = author;
+    updatedBook.genre = genre;
+    updatedBook.publicationDate = publicationDate;
+
+    const savedBook = await updatedBook.save();
+
+    res.json(savedBook);
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }
 });
+
 
 
 
